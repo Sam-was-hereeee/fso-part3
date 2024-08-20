@@ -15,9 +15,12 @@
   "author": "Sam",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.19.2"
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "morgan": "^1.10.0"
   },
   "devDependencies": {
+    "@flydotio/dockerfile": "^0.5.8",
     "nodemon": "^3.1.4"
   }
 }

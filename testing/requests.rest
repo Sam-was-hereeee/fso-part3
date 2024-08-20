@@ -1,5 +1,27 @@
-GET http://localhost:3001/
+##GET http://localhost:3001/
 
 ###
-
+# @name=getAllPeople
 GET http://localhost:3001/api/persons
+
+###
+# @name=getInfo
+GET http://localhost:3001/info
+
+###
+# @name=getPerson1
+GET http://localhost:3001/api/persons/1
+
+###
+# @name=deletePerson1
+DELETE http://localhost:3001/api/persons/1
+
+###
+# @name=addPerson
+POST http://localhost:3001/api/persons
+Content-Type: application/json
+
+{
+  "name": "Sam",
+  "number": "0000-0000"
+}
