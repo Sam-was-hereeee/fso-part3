@@ -1,9 +1,14 @@
+require('dotenv').config();
+
 const express = require('express')
 const app = express()
 const morgan = require('morgan')
 const cors = require('cors')
+const People = require('./../db/peopledb.js')
+
 
 app.use(cors())
+app.use(express.static('dist'))
 app.use(express.json())
 morgan.token('post-content', (req, res)=>{
     if (req.method !== 'POST') {return;}
@@ -47,19 +52,11 @@ const randomIdGen = () => {
     return Math.floor(Math.random() * 1000000)
 }
 
-app.get('/', (req, res) => {
-    const requestTime = new Date()
-    let responseMsg = `
-        <div>Phonebook had info for ${persons.length} people</div><br>
-        <p>${String(requestTime)}</p>
-    `;
-    res.send(responseMsg);
-})
-
 app.get('/info', (request, response) => {
     const requestTime = new Date()
+    People.find({}).then((res)=>{console.log(res)})
     let responseMsg = `
-        <div>Phonebook had info for ${persons.length} people</div><br>
+        <div>Phonebook had info for ${People.countDocuments({})} people</div><br>
         <p>${String(requestTime)}</p>
     `;
     response.send(responseMsg);
@@ -105,6 +102,7 @@ app.delete('/api/persons/:id', (request, response) => {
     persons = persons.filter(person => person.id !== requestId);
     response.status(204).send('deleted successfully');
 })
+
 
 const PORT = process.env.PORT||3001
 app.listen(PORT, () => {
