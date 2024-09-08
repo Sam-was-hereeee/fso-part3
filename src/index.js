@@ -5,6 +5,7 @@ const app = express()
 const morgan = require('morgan')
 const cors = require('cors')
 const People = require('./../db/peopledb.js')
+const {response} = require("express");
 
 
 app.use(cors())
@@ -25,11 +26,7 @@ app.use(morgan((tokens, req, res)=>{
     ].join(' ');
 }))
 
-const randomIdGen = () => {
-    return Math.floor(Math.random() * 1000000)
-}
-
-app.get('/info', (request, response) => {
+app.get('/info', (request, response, next) => {
     const requestTime = new Date();
     People.find({}).then((res)=>{console.log(res);});
     People.countDocuments({}).then((itemCnt)=>{
@@ -39,16 +36,16 @@ app.get('/info', (request, response) => {
     `;
         response.send(responseMsg);
 
-    });
+    }).catch(err=>{next(err)})
 })
 
-app.get('/api/persons', (request, response) => {
+app.get('/api/persons', (request, response,next) => {
     console.log('requested full persons')
     People.find({}).then(persons=>{
         response.json(persons)
-    })
+    }).catch(err=>{next(err)})
 })
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response,next) => {
     console.log(`received person ${typeof(request.body)}`);
     const body = request.body;
     People.find({}).then(personsList=>{
@@ -66,25 +63,49 @@ app.post('/api/persons', (request, response) => {
         newPerson.save().then(savedPerson=>{
             response.json(savedPerson)
         })
-    })
+    }).catch(err=>{next(err)})
 })
 
-app.get('/api/persons/:id', async (request, response) => {
+app.get('/api/persons/:id', async (request, response, next) => {
     console.log('requested one person');
     const requestId = request.params.id;
-    const foundPerson = await People.findById(requestId).exec();
-    if (!foundPerson) {response.status(404).send('No such person');return;}
-    response.json(foundPerson);
+    try {
+        const foundPerson = await People.findById(requestId).exec();
+        if (!foundPerson) {response.status(404).send('No such person');return;}
+        response.json(foundPerson);
+    } catch (err) {
+        next(err)
+    }
 })
-app.delete('/api/persons/:id', async (request, response) => {
+app.delete('/api/persons/:id', async (request, response, next) => {
     const requestId = request.params.id;
-    const foundPerson = await People.findByIdAndDelete(requestId).exec()
-    if (!foundPerson) {response.status(404).send('No such person');return;}
-    response.status(204).send('deleted successfully');
+    try {
+        const foundPerson = await People.findByIdAndDelete(requestId).exec()
+        if (!foundPerson) {response.status(404).send('No such person');return;}
+        response.status(204).send('deleted successfully');
+    } catch (err) {
+        next(err);
+    }
+
 })
 
+const unknownEndpoint = (_req, _res) => {
+    response.status(404).send({error: 'No such entry with this endpoint'});
+}
 
-const PORT = process.env.PORT||3001
+app.use(unknownEndpoint);
+
+const errorHandler = (err, req, res, next) => {
+    console.log(err);
+    if (err.name === "CastError") {
+        return response.status(400).send({error: 'Invalid id format'});
+    }
+    next(err);
+}
+
+app.use(errorHandler);
+
+const PORT = process.env.PORT||3001;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`)
+    console.log(`Server running on port ${PORT}`);
 })
