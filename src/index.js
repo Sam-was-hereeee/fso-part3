@@ -25,81 +25,61 @@ app.use(morgan((tokens, req, res)=>{
     ].join(' ');
 }))
 
-let persons = [
-    {
-        "id": "1",
-        "name": "Arto Hellas",
-        "number": "040-123456"
-    },
-    {
-        "id": "2",
-        "name": "Ada Lovelace",
-        "number": "39-44-5323523"
-    },
-    {
-        "id": "3",
-        "name": "Dan Abramov",
-        "number": "12-43-234345"
-    },
-    {
-        "id": "4",
-        "name": "Mary Poppendieck",
-        "number": "39-23-6423122"
-    }
-]
-
 const randomIdGen = () => {
     return Math.floor(Math.random() * 1000000)
 }
 
 app.get('/info', (request, response) => {
-    const requestTime = new Date()
-    People.find({}).then((res)=>{console.log(res)})
-    let responseMsg = `
-        <div>Phonebook had info for ${People.countDocuments({})} people</div><br>
+    const requestTime = new Date();
+    People.find({}).then((res)=>{console.log(res);});
+    People.countDocuments({}).then((itemCnt)=>{
+        let responseMsg = `
+        <div>Phonebook had info for ${itemCnt} people</div><br>
         <p>${String(requestTime)}</p>
     `;
-    response.send(responseMsg);
+        response.send(responseMsg);
+
+    });
 })
 
 app.get('/api/persons', (request, response) => {
     console.log('requested full persons')
-    response.json(persons)
+    People.find({}).then(persons=>{
+        response.json(persons)
+    })
 })
 app.post('/api/persons', (request, response) => {
     console.log(`received person ${typeof(request.body)}`);
     const body = request.body;
-    if (!body.name || !body.number) {
-        response.status(400).send({error: 'name or number is required'});
-        return;
-    } else if (persons.find((person) => person.name === body.name)) {
-        response.status(400).send({error: 'person already exists'});
-        return;
-    }
-    const newPerson = {
-        "name": String(body.name),
-        "number": String(body.number),
-        "id": String(randomIdGen())
-    }
-    persons.push(newPerson)
-    response.json(newPerson)
+    People.find({}).then(personsList=>{
+        if (!body.name || !body.number) {
+            response.status(400).send({error: 'name or number is required'});
+            return;
+        } else if (personsList.find((person) => person.name === body.name)) {
+            response.status(400).send({error: 'person already exists'});
+            return;
+        }
+        const newPerson = new People ({
+            "name": String(body.name),
+            "number": String(body.number)
+        })
+        newPerson.save().then(savedPerson=>{
+            response.json(savedPerson)
+        })
+    })
 })
 
-app.get('/api/persons/:id', (request, response) => {
+app.get('/api/persons/:id', async (request, response) => {
     console.log('requested one person');
     const requestId = request.params.id;
-    const foundPerson = persons.find(person => person.id === requestId);
+    const foundPerson = await People.findById(requestId).exec();
     if (!foundPerson) {response.status(404).send('No such person');return;}
     response.json(foundPerson);
 })
-app.delete('/api/persons/:id', (request, response) => {
-    console.log(`deleted ${request.params.id}`);
+app.delete('/api/persons/:id', async (request, response) => {
     const requestId = request.params.id;
-    if (!persons.find(person => person.id === requestId)) {
-        response.status(404).send('No such person');
-        return;
-    }
-    persons = persons.filter(person => person.id !== requestId);
+    const foundPerson = await People.findByIdAndDelete(requestId).exec()
+    if (!foundPerson) {response.status(404).send('No such person');return;}
     response.status(204).send('deleted successfully');
 })
 
