@@ -60,10 +60,12 @@ app.post('/api/persons', (request, response,next) => {
             "name": String(body.name),
             "number": String(body.number)
         })
-        newPerson.save().then(savedPerson=>{
-            response.json(savedPerson)
-        })
-    }).catch(err=>{next(err)})
+        newPerson
+            .save()
+            .then(savedPerson=>{response.json(savedPerson)})
+            .catch(err=>{next(err)})
+    })
+
 })
 
 app.get('/api/persons/:id', async (request, response, next) => {
@@ -86,19 +88,41 @@ app.delete('/api/persons/:id', async (request, response, next) => {
     } catch (err) {
         next(err);
     }
-
 })
 
-const unknownEndpoint = (_req, _res) => {
-    response.status(404).send({error: 'No such entry with this endpoint'});
+app.put('/api/persons/:id', async (request, response, next) => {
+    try {
+        const requestId = request.params.id;
+        const body = request.body;
+        const foundPerson = await People.findById(requestId).exec();
+        if (!foundPerson) {response.status(404).send('No such person');return;}
+        const person = {
+            name: body.name,
+            number: body.number
+        };
+        const result = await People.findByIdAndUpdate(
+            requestId,
+            person,
+            {new:true, runValidators:true});
+        response.json(result);
+    } catch (err) {
+        next(err);
+    }
+})
+
+const unknownEndpoint = (_req, res) => {
+    res.status(404).send({error: 'No such entry with this endpoint'});
 }
 
 app.use(unknownEndpoint);
 
 const errorHandler = (err, req, res, next) => {
-    console.log(err);
+    console.log("handling error:", err);
     if (err.name === "CastError") {
-        return response.status(400).send({error: 'Invalid id format'});
+        return res.status(400).send({error: 'Invalid id format'});
+    }
+    if (err.name === "ValidationError") {
+        return res.status(400).json({err});
     }
     next(err);
 }

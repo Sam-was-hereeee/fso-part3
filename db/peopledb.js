@@ -10,9 +10,14 @@ mongoose.connect(url).then(() => {
     console.log('connection failed')
 });
 
+const numberValidator = (val) => {
+    const numberRegex = /^[0-9]+-[0-9]+$/;
+    return numberRegex.test(val)&&val.length >= 8;
+}
+
 const phoneSchema = new mongoose.Schema({
-    name: String,
-    number: String
+    name: {type: String, minLength: 3, required: true},
+    number: {type: String, validate: numberValidator},
 });
 
 phoneSchema.set('toJSON', {
